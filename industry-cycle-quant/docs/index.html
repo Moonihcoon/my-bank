@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>산업 사이클 퀀트 대시보드</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b2430;--mute:#6b7685;--line:#e3e7ee;--accent:#1f5eff;
+--c1:#1f5eff;--c2:#00a37a;--c3:#e0902a;--c4:#8a5cf6;--c5:#d6455d;--warn:#b25e00;--warnbg:#fff4e0}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202a;--ink:#e8edf4;--mute:#92a0b3;--line:#2a3441;--warnbg:#3a2a10;--warn:#ffb85c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+header{padding:18px 24px 8px}h1{margin:0;font-size:20px}.sub{color:var(--mute);font-size:12px}
+.banner{margin:8px 24px;padding:8px 12px;border-radius:8px;background:var(--warnbg);color:var(--warn);font-size:13px}
+nav{display:flex;gap:4px;padding:8px 24px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;color:var(--mute);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;white-space:nowrap}
+nav button.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 0 0 1px var(--line)}
+main{padding:16px 24px 40px;max-width:1200px}section{display:none}section.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:700}.kpi .l{color:var(--mute);font-size:12px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--mute);background:var(--bg);cursor:pointer;white-space:nowrap}tr:last-child td{border:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid var(--line)}
+.t0{background:#e1f5ee;color:#0b6b4f;border-color:#bfe6d8}.t1{background:#e6eeff;color:#1a47c2;border-color:#c9d8ff}
+.t2{background:var(--bg);color:var(--mute)}.t3{background:#fde9ec;color:#a42a3f;border-color:#f5c6ce}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line);min-width:120px}
+.bar i{display:block;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px;font-size:12px;color:var(--mute)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
+.row .nm{width:150px;font-weight:600}.row .meter{flex:1;height:12px;background:var(--line);border-radius:6px;position:relative}
+.row .meter i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--c1)}
+.muted{color:var(--mute);font-size:12px}.flt{margin:0 0 12px;display:flex;gap:8px;flex-wrap:wrap}
+select,input{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.ok{color:#0b6b4f}.bad{color:#a42a3f}.det{display:none;background:var(--bg)}.det.open{display:table-row}
+footer{padding:0 24px 24px;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>산업 사이클 퀀트 대시보드</h1><div class="sub" id="meta">불러오는 중…</div></header>
+<div id="banner"></div>
+<nav id="nav"></nav>
+<main>
+<section id="s0"></section><section id="s1"></section><section id="s2"></section><section id="s3"></section><section id="s4"></section><section id="s5"></section>
+</main>
+<footer id="foot"></footer>
+<script>
+const TABS=["시장 요약","산업 사이클","종목 후보","성과 검증","데이터 관리","사이클 참고"];
+const COL={industry:"var(--c1)",earnings:"var(--c2)",trend:"var(--c3)",valuation:"var(--c4)",risk:"var(--c5)"};
+const NAME={industry:"산업 사이클",earnings:"실적 흐름",trend:"주가 추세",valuation:"밸류에이션",risk:"재무·유동성 위험"};
+const TAG={"우선 검토 후보":"t0","매수 후보 관찰":"t1","관찰":"t2","제외 또는 보류":"t3"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let D,CY,BT,LOG,sortKey="total",sortDir=-1,fInd="",fLab="";
+
+async function j(u){try{const r=await fetch(u,{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}}
+async function main(){
+  [D,CY,BT]=await Promise.all([j("data/dashboard.json"),j("data/cycles.json"),j("data/backtest.json")]);
+  if(!D){$("#meta").textContent="data/dashboard.json 을 불러오지 못했습니다.";return}
+  $("#meta").textContent=`자료 기준일 ${D.as_of} · 생성 ${D.generated_at} · 종목 ${D.data_quality.n_stocks}/${D.data_quality.n_map}`;
+  if(D.is_demo)$("#banner").innerHTML='<div class="banner">⚠ 화면 확인용 <b>가상 샘플 데이터</b>입니다. 실제 종목·시세·산업 지표가 아니며 투자 판단에 사용할 수 없습니다.</div>';
+  $("#nav").innerHTML=TABS.map((t,i)=>`<button data-i="${i}">${t}</button>`).join("");
+  $("#nav").onclick=e=>{if(e.target.dataset.i!=null)show(+e.target.dataset.i)};
+  $("#foot").textContent=D.disclaimer;
+  render();show(0);
+}
+function show(i){document.querySelectorAll("nav button").forEach((b,k)=>b.classList.toggle("on",k==i));document.querySelectorAll("section").forEach((s,k)=>s.classList.toggle("on",k==i))}
+function bar(p){const t=Object.values(D.weights).reduce((a,b)=>a+b,0);return `<div class="bar" title="${Object.keys(p).map(k=>NAME[k]+" "+p[k]).join(" / ")}">${Object.keys(COL).map(k=>`<i style="width:${p[k]/t*100}%;background:${COL[k]}"></i>`).join("")}</div>`}
+function legend(){return `<div class="legend">${Object.keys(COL).map(k=>`<span><b style="background:${COL[k]}"></b>${NAME[k]} ${D.weights[k]}점</span>`).join("")}</div>`}
+function spark(v){if(!v||v.length<2)return"";const w=90,h=26,mn=Math.min(...v),mx=Math.max(...v),r=mx-mn||1;
+  const pts=v.map((y,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(h-(y-mn)/r*h).toFixed(1)}`).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="var(--c1)" stroke-width="1.5"/></svg>`}
+
+function render(){
+  const S=D.stocks,cnt=l=>S.filter(s=>s.label==l).length;
+  const stale=S.filter(s=>s.price_stale_days>7).length;
+  const topInd=D.industries[0];
+  $("#s0").innerHTML=`<div class="grid">
+    <div class="card kpi"><div class="v">${cnt("우선 검토 후보")}</div><div class="l">우선 검토 후보 (80점↑, 필터 통과)</div></div>
+    <div class="card kpi"><div class="v">${cnt("매수 후보 관찰")}</div><div class="l">매수 후보 관찰 (70~79점)</div></div>
+    <div class="card kpi"><div class="v">${cnt("관찰")}</div><div class="l">관찰 (55~69점)</div></div>
+    <div class="card kpi"><div class="v ${stale?'bad':'ok'}">${stale?stale+"개 지연":"정상"}</div><div class="l">시세 최신성 (7일 초과 지연 종목)</div></div></div>
+    <div class="card"><b>산업 사이클 상위</b><div class="muted">점수는 배점 ${D.weights.industry}점 기준, 신뢰도는 확인된 지표 비율입니다.</div>
+    ${D.industries.slice(0,4).map(indRow).join("")}</div>
+    <p class="muted">시장 추세·보유 업종 비중·현금 비중은 계좌 연동(미구현) 후 표시됩니다. 이 화면은 주문을 실행하지 않습니다.</p>`;
+  $("#s1").innerHTML=`<div class="card">${D.industries.map(indRow).join("")}</div>`;
+  const inds=[...new Set(S.map(s=>s.industry))],labs=Object.keys(TAG);
+  $("#s2").innerHTML=`${legend()}<div class="flt"><select id="fi"><option value="">전체 산업</option>${inds.map(i=>`<option>${esc(i)}</option>`).join("")}</select>
+   <select id="fl"><option value="">전체 구간</option>${labs.map(i=>`<option>${i}</option>`).join("")}</select></div><div id="tbl"></div>`;
+  $("#fi").onchange=e=>{fInd=e.target.value;tbl()};$("#fl").onchange=e=>{fLab=e.target.value;tbl()};tbl();
+  $("#s3").innerHTML=BT?btHtml():`<div class="card"><b>백테스트 결과 없음</b><p class="muted">상장폐지 종목·거래비용·세금·슬리피지를 반영한 워크포워드 검증이 끝나기 전까지 점수 구간은 초안입니다. 결과를 docs/data/backtest.json 으로 저장하면 이 화면에 표시됩니다 (형식은 README 참고).</p></div>`;
+  const P=D.data_quality.problems;
+  $("#s4").innerHTML=`<div class="grid"><div class="card kpi"><div class="v">${D.data_quality.n_stocks}/${D.data_quality.n_map}</div><div class="l">점수 산출 종목 / 분류표 종목</div></div>
+   <div class="card kpi"><div class="v ${P.length?'bad':'ok'}">${P.length}</div><div class="l">자료 문제 건수</div></div>
+   <div class="card kpi"><div class="v">${D.industries.filter(i=>i.confidence<0.5).length}</div><div class="l">신뢰도 낮은 산업(50% 미만)</div></div></div>
+   ${P.length?`<table><tr><th>종목코드</th><th>문제</th></tr>${P.map(p=>`<tr><td>${esc(p.code)}</td><td>${esc(p.issue)}</td></tr>`).join("")}</table>`:'<div class="card ok">자료 문제 없음</div>'}
+   <p class="muted">수집 성공·실패, API 한도, 정정 내역은 data/collect_log.csv 와 GitHub Actions 실행 기록에서 확인합니다.</p>`;
+  $("#s5").innerHTML=CY?`<p class="muted">일부 연구에서 관찰된 범위와 실무 참고 범위입니다. 국면별 최솟값·최댓값을 합산해 주기를 계산하지 마세요.</p>
+   <table><tr><th>산업군</th><th>1주기 참고</th><th>국면별 기간</th><th>주요 변수</th><th>해석 주의</th></tr>${CY.map(r=>`<tr><td><b>${esc(r.industry)}</b></td><td>${esc(r.cycle)}</td><td>${esc(r.phases).replace(/\n/g,"<br>")}</td><td>${esc(r.drivers)}</td><td>${esc(r.caution)}</td></tr>`).join("")}</table>`:"";
+}
+function indRow(i){const pct=i.score/i.max*100;return `<div class="row"><div class="nm">${esc(i.industry)}<div class="muted">${esc(i.phase)}</div></div>
+ <div class="meter"><i style="width:${pct}%"></i></div><div style="width:60px;text-align:right"><b>${i.score}</b>/${i.max}</div>
+ <div class="muted" style="width:230px">신뢰도 ${Math.round(i.confidence*100)}% · 기준 ${esc(i.as_of||"미확인")}<br>${esc(i.notes.join(", "))}</div></div>`}
+function tbl(){
+  let r=D.stocks.filter(s=>(!fInd||s.industry==fInd)&&(!fLab||s.label==fLab));
+  r.sort((a,b)=>(a[sortKey]>b[sortKey]?1:-1)*sortDir);
+  const h=(k,t,n)=>`<th class="${n?'n':''}" data-k="${k}">${t}${sortKey==k?(sortDir<0?" ▼":" ▲"):""}</th>`;
+  $("#tbl").innerHTML=`<table><tr>${h("name","종목")}${h("industry","산업")}${h("total","총점",1)}<th>세부 점수</th>${h("label","구간")}${h("rel6","6M 상대(%p)",1)}${h("turnover_eok","거래대금(억)",1)}<th>추이</th></tr>
+  ${r.map((s,i)=>`<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(s.name)}</b><div class="muted">${s.code} · ${s.market}</div></td><td>${esc(s.industry)}</td><td class="n"><b>${s.total}</b></td><td>${bar(s.parts)}</td>
+  <td><span class="tag ${TAG[s.label]}">${s.label}</span></td><td class="n">${s.rel6}</td><td class="n">${s.turnover_eok.toLocaleString()}</td><td>${spark(s.spark)}</td></tr>
+  <tr class="det" id="d${i}"><td colspan="8"><div class="muted">세부: ${Object.keys(s.parts).map(k=>`${NAME[k]} ${s.parts[k]}/${D.weights[k]}`).join(" · ")}</div>
+  <div class="muted">필터: ${Object.entries(s.filters).map(([k,v])=>`${k} <span class="${v?'ok':'bad'}">${v?'통과':'미통과'}</span>`).join(" · ")}</div>
+  <div class="muted">근거: ${esc(s.notes.join(", "))} · 변동성 ${s.vol}% · 시세 기준 ${s.last_price_date}</div></td></tr>`).join("")}</table>`;
+  document.querySelectorAll("#tbl th[data-k]").forEach(t=>t.onclick=()=>{const k=t.dataset.k;sortDir=sortKey==k?-sortDir:-1;sortKey=k;tbl()});
+  document.querySelectorAll("#tbl tr[data-i]").forEach(t=>t.onclick=()=>$("#d"+t.dataset.i).classList.toggle("open"));
+}
+function btHtml(){
+  const kp=Object.entries(BT.summary||{}).map(([k,v])=>`<div class="card kpi"><div class="v" style="font-size:20px">${esc(v)}</div><div class="l">${esc(k)}</div></div>`).join("");
+  let chart="";const c=BT.curve||[];
+  if(c.length>1){const W=720,H=200,all=c.flatMap(r=>[r[1],r[2]]).filter(v=>v!=null),mn=Math.min(...all),mx=Math.max(...all),r=mx-mn||1;
+    const line=(i,col)=>`<polyline fill="none" stroke="${col}" stroke-width="2" points="${c.map((q,k)=>q[i]==null?"":`${(k/(c.length-1)*W).toFixed(1)},${(H-(q[i]-mn)/r*H).toFixed(1)}`).filter(Boolean).join(" ")}"/>`;
+    chart=`<div class="card" style="margin:12px 0"><div class="legend"><span><b style="background:var(--c1)"></b>전략</span><span><b style="background:var(--mute)"></b>기준지수</span><span>${c[0][0]} ~ ${c[c.length-1][0]} (시작=1)</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">${line(2,"var(--mute)")}${line(1,"var(--c1)")}</svg></div>`}
+  const per=Object.entries(BT.periods||{}).map(([n,v])=>`<tr><td>${esc(n)}</td><td>${Object.entries(v["전략"]||{}).map(([a,b])=>a+" "+b).join(" · ")}</td><td>${Object.entries(v["기준지수"]||{}).map(([a,b])=>a+" "+b).join(" · ")}</td></tr>`).join("");
+  return `<div class="grid">${kp}</div>${chart}${per?`<table><tr><th>구간</th><th>전략</th><th>기준지수</th></tr>${per}</table>`:""}<p class="muted">${esc(BT.note||"")}</p>`}
+main();
+</script>
+</body>
+</html>
