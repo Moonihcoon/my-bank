@@ -40,8 +40,8 @@ def classify(row, rules: pd.DataFrame) -> tuple[str, str]:
     return "미분류", ""
 
 
-def run() -> None:
-    d = ROOT / "data"
+def run(keep_unclassified: bool = False, d: Path | None = None) -> None:
+    d = d or ROOT / "data"
     df = pd.read_csv(d / "krx_listed.csv", dtype=str)
     cols = {k: find(df, k) for k in ALIASES}
     miss = [k for k in ("code", "name", "market") if not cols[k]]
@@ -65,10 +65,15 @@ def run() -> None:
                     "industry": ind, "source": src})
     res = pd.DataFrame(out)
     res.to_csv(d / "industry_map_full.csv", index=False)
-    res[res["industry"] != "미분류"].drop(columns="source").to_csv(d / "industry_map.csv", index=False)
+    (res if keep_unclassified else res[res["industry"] != "미분류"]).drop(columns="source").to_csv(d / "industry_map.csv", index=False)
     print(f"전체 {len(res)}종목 중 분류 {int((res.industry != '미분류').sum())}, 미분류 {int((res.industry == '미분류').sum())} "
           f"→ industry_map.csv(분류분), industry_map_full.csv(전체·근거 포함)")
 
 
 if __name__ == "__main__":
-    run()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", default=str(ROOT / "data"))
+    ap.add_argument("--keep-unclassified", action="store_true", help="미분류 종목도 industry_map.csv 에 '미분류'로 포함(추세 점수만 보고 싶을 때)")
+    a = ap.parse_args()
+    run(a.keep_unclassified, Path(a.data))

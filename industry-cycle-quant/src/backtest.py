@@ -60,7 +60,7 @@ def run(a) -> dict:
     turnover_sum, n_hold = 0.0, []
     for k, m in enumerate(rebal):
         sc = bs.score_at(data, m.date())
-        picks = [s for s in sc["stocks"] if s["total"] >= a.min_score and all(s["filters"].values())]
+        picks = [s for s in sc["stocks"] if s["total"] >= a.min_score and all(v for k, v in s["filters"].items() if not (a.no_data_filter and k == "자료"))]
         picks = picks[: a.top_n]
         nxt = idx[idx > m]
         if not len(nxt):
@@ -132,6 +132,7 @@ if __name__ == "__main__":
     ap.add_argument("--commission", type=float, default=0.00015, help="편도 수수료율 (가정)")
     ap.add_argument("--slippage", type=float, default=0.001, help="편도 슬리피지 (가정)")
     ap.add_argument("--sell-tax", type=float, default=0.0020, help="매도 시 거래세 (가정 — 현행 세율 확인 후 입력)")
+    ap.add_argument("--no-data-filter", action="store_true", help="산업·재무 자료 신뢰도 필터 제외(자료가 없을 때 추세 단독 베이스라인용)")
     ap.add_argument("--delist-haircut", type=float, default=0.0)
     ap.add_argument("--split", default="", help="표본 외 시작일 YYYY-MM-DD")
     a = ap.parse_args()

@@ -204,12 +204,14 @@ def score_at(data: dict, asof_d: date) -> dict:
             "problems": problems, "n_map": len(imap)}
 
 
-def run(d: Path, today: date, demo: bool) -> dict:
+def run(d: Path, today: date, demo: bool, max_stocks: int = 500) -> dict:
     res = score_at(load_data(d), today)
+    n_scored = len(res["stocks"])
+    res["stocks"] = res["stocks"][:max_stocks]  # 화면용 상위 N개만 저장
     return {
         "is_demo": demo, "generated_at": datetime.now().isoformat(timespec="minutes"), "as_of": str(today),
         "weights": W, "industries": res["industries"], "stocks": res["stocks"],
-        "data_quality": {"problems": res["problems"], "n_stocks": len(res["stocks"]), "n_map": res["n_map"]},
+        "data_quality": {"problems": res["problems"][:200], "n_problems": len(res["problems"]), "n_stocks": n_scored, "n_shown": len(res["stocks"]), "n_map": res["n_map"]},
         "disclaimer": "투자 의사결정 보조 도구이며 주문을 자동 실행하지 않습니다. 점수 구간은 백테스트 확정 전 초안입니다.",
     }
 
@@ -220,8 +222,9 @@ if __name__ == "__main__":
     ap.add_argument("--out", default=str(ROOT / "docs" / "data" / "dashboard.json"))
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--today", default=str(date.today()))
+    ap.add_argument("--max-stocks", type=int, default=500)
     a = ap.parse_args()
-    res = run(Path(a.root), date.fromisoformat(a.today), a.demo)
+    res = run(Path(a.root), date.fromisoformat(a.today), a.demo, a.max_stocks)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -42,3 +42,12 @@ GitHub Pages 로 게시한 사이트는 저장소가 비공개여도 **URL을 �
 
 ## 점수 구간(초안)
 80~100 우선 검토 후보(추세·유동성·위험 필터 전부 통과 필요, 미통과 시 한 단계 강등) / 70~79 매수 후보 관찰 / 55~69 관찰 / 55 미만 제외·보류.
+
+## 기존 일봉 데이터 연결
+```bash
+python src/import_local_stock.py --src "C:\Users\...\Desktop\stock\export" --out ../stockdata
+python src/build_industry_map.py --data ../stockdata --keep-unclassified
+python src/build_scores.py --root ../stockdata --out ../stockdata/dashboard.json
+python src/backtest.py --root ../stockdata --split 2024-01-01 --min-score 58 --top-n 20 --no-data-filter
+```
+실제 시세·점수 파일은 저장소에 올리지 않습니다(`../stockdata` 는 저장소 밖).
