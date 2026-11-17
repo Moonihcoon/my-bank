@@ -232,7 +232,7 @@ def words(t, name):
 def collect_news(dates, tick, tops, targets, have):
     """targets(거래일 인덱스)마다 상위 200 종목 뉴스 → (reason rows, themes)."""
     rows, themes = [], {}
-    names_all = {n for _, n, _ in tick}
+    names_all = {t[1] for t in tick}
     for di in targets:
         d, p = dates[di], dates[di - 1]
         top = tops.get(d[:7], {}).get(str(di)) or []
