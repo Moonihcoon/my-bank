@@ -31,13 +31,20 @@ def excluded(name: str) -> bool:
     return bool(re.search(r"(우$|우B$|우\(전환\)$|[0-9]우[A-Z]?$|스팩|제\d+호|리츠|REIT)", name))
 
 
+def sector_fallback(row) -> tuple[str, str]:
+    sec = row.get("sector")
+    if isinstance(sec, str) and sec.strip():
+        return sec.strip(), "업종명(키움/KRX)"
+    return "미분류", ""
+
+
 def classify(row, rules: pd.DataFrame) -> tuple[str, str]:
     for r in rules.sort_values("priority").to_dict("records"):
         if r["match_type"] == "krx_sector" and isinstance(row["sector"], str) and r["pattern"] in row["sector"]:
             return r["industry"], f"규칙:업종 {r['pattern']}"
         if r["match_type"] == "name_keyword" and re.search(r["pattern"], row["name"]):
             return r["industry"], f"규칙:이름 {r['pattern']}"
-    return "미분류", ""
+    return sector_fallback(row)
 
 
 def run(keep_unclassified: bool = False, d: Path | None = None) -> None:
@@ -57,8 +64,10 @@ def run(keep_unclassified: bool = False, d: Path | None = None) -> None:
     ov = pd.read_csv(d / "industry_overrides.csv", dtype={"code": str}).set_index("code")["industry"] if (d / "industry_overrides.csv").exists() else {}
     out = []
     for r in df.to_dict("records"):
-        if r["code"] in ov:
+        if r["code"] in ov and ov[r["code"]] != "미분류":
             ind, src = ov[r["code"]], "확정(overrides)"
+        elif r["code"] in ov:  # '미분류' 확정 = 이름 규칙을 막고 업종명으로 돌림
+            ind, src = sector_fallback(r)
         else:
             ind, src = classify(r, rules)
         out.append({"code": r["code"], "name": r["name"], "market": "KOSPI" if "KOSPI" in r["market"] or "유가" in r["market"] else "KOSDAQ",

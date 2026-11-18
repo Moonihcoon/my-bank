@@ -32,8 +32,9 @@ def main(src: Path, out: Path) -> None:
         g[cols].to_csv(out / "prices" / f"{code}.csv", index=False)
 
     meta = df.groupby("ticker").agg(name=("name", "last"), market=("market", "last")).reset_index()
-    pd.DataFrame({"종목코드": meta["ticker"], "종목명": meta["name"], "시장구분": meta["market"], "업종명": ""}).to_csv(
-        out / "krx_listed.csv", index=False)
+    ind = t.set_index("ticker")["industry"] if "industry" in t.columns else pd.Series(dtype=str)
+    pd.DataFrame({"종목코드": meta["ticker"], "종목명": meta["name"], "시장구분": meta["market"],
+                  "업종명": meta["ticker"].map(ind).fillna("")}).to_csv(out / "krx_listed.csv", index=False)
     mc = df.dropna(subset=["market_cap_won"]).groupby("ticker")["market_cap_won"].last()
     mc.rename("market_cap").rename_axis("code").reset_index().to_csv(out / "krx_marketcap.csv", index=False)
 
