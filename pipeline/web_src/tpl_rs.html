@@ -1,0 +1,43 @@
+<style>
+/* ===== 리서치 탭 (상승률 200 전용). #p-research 안에서만 적용됩니다 ===== */
+#p-research .rs-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+#p-research .rs-bar label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-2)}
+#p-research .rs-nav{display:flex;gap:6px}
+#p-research .rs-info{margin:6px 0 10px;color:var(--ink-2);font-size:13px}
+#p-research .rs-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+#p-research .rs-it{padding:12px 14px;border-top:1px solid var(--line);min-width:0}
+#p-research .rs-it:first-child{border-top:0}
+#p-research .rs-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+#p-research .rs-nm{font-weight:700;font-size:15.5px}
+#p-research .rs-cd{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:5px}
+#p-research .rs-kv{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+#p-research .rs-kv b{color:var(--ink);font-weight:600}
+#p-research .rs-up{color:var(--up);font-size:12px;margin-left:3px}
+#p-research .rs-dn{color:var(--down);font-size:12px;margin-left:3px}
+#p-research .rs-op{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--ink-2);background:var(--bg)}
+#p-research .rs-op.b{color:var(--up);border-color:var(--up)}
+#p-research .rs-op.s{color:var(--down);border-color:var(--down)}
+#p-research .rs-meta{margin-top:3px;font-size:12.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#p-research .rs-meta b{color:var(--ink-2);font-weight:600}
+#p-research .rs-b{display:flex;gap:12px;align-items:flex-start;margin-top:6px}
+#p-research .rs-sm{flex:1;min-width:0;font-size:13.5px;line-height:1.55;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#p-research .rs-sm.no{color:var(--ink-3)}
+#p-research a.rs-go{flex:0 0 auto;font:inherit;font-size:12.5px;padding:5px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);text-decoration:none;white-space:nowrap}
+#p-research a.rs-go:hover{border-color:var(--accent);color:var(--accent)}
+#p-research a.rs-go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#p-research .rs-more{margin:10px auto 0;display:block}
+#p-research .rs-empty{padding:30px 10px;text-align:center;color:var(--ink-2)}
+</style>
+<section id="p-research" hidden>
+<div class="card">
+<div class="rs-bar">
+<label>날짜<select id="rr-dt" aria-label="날짜 선택" style="min-width:190px"></select></label>
+<div class="rs-nav"><button type="button" class="btn" id="rr-prev" aria-label="이전 날짜">‹ 이전</button><button type="button" class="btn" id="rr-next" aria-label="다음 날짜">다음 ›</button></div>
+<label>종목명·증권사 검색<input type="search" id="rr-q" placeholder="예: 삼성, 하나증권"></label>
+<label>투자의견<select id="rr-op" aria-label="투자의견"><option value="">전체</option><option>매수</option><option>중립</option><option>매도</option><option>없음</option></select></label>
+</div>
+<p class="rs-info" id="rr-info"></p>
+<div class="rs-list" id="rr-list"></div>
+<button type="button" class="btn rs-more" id="rr-more" hidden>더 보기</button>
+</div>
+</section>
