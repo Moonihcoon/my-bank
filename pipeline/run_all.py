@@ -176,15 +176,18 @@ def publish_share():
 
 
 def already_done():
-    """자동 실행용: 오늘(평일, 장 마감 후) 시세가 이미 올라가 있으면 True."""
+    """자동 실행용: 오늘(평일) 이미 다른 PC가 업데이트를 올렸으면 True. (15:40 전: 오늘 실행 기록, 이후: 오늘 시세)"""
     import json, datetime
     try:
         u = json.load(open(REPO / 'data' / 'updated.json', encoding='utf-8'))
     except (OSError, ValueError):
         return False
     now = datetime.datetime.now()
-    if now.weekday() >= 5 or now.hour * 60 + now.minute < 15 * 60 + 40:
+    if now.weekday() >= 5:
         return False
+    if now.hour * 60 + now.minute < 15 * 60 + 40:
+        # 아침 실행(전 거래일까지의 시세): 오늘 이미 다른 PC가 한 번 돌렸으면 건너뜁니다.
+        return str(u.get('t', ''))[:10] == now.strftime('%Y-%m-%d')
     return u.get('d') == now.strftime('%Y-%m-%d')
 
 
