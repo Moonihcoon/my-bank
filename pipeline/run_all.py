@@ -158,6 +158,8 @@ def publish_share():
     shutil.copytree(REPO / 'data' / 'top', sd / 'data' / 'top')
     if (REPO / 'data' / 'rs').exists():
         shutil.copytree(REPO / 'data' / 'rs', sd / 'data' / 'rs', ignore=shutil.ignore_patterns('_state.json'))
+    if (REPO / 'data' / 'mn').exists():
+        shutil.copytree(REPO / 'data' / 'mn', sd / 'data' / 'mn')
     shutil.copytree(REPO / 'px' / 'm', sd / 'px' / 'm')
     for attempt in range(3):
         g('add', '-A', '.')
@@ -242,6 +244,8 @@ def _main():
     step('상승 이유', reasons_dart.main)
     import research_naver
     step('네이버 리서치', research_naver.main)
+    import minute_export
+    step('분봉 내보내기(리서치 차트)', minute_export.main)
     if '--no-push' not in args and opt('options', 'push', 'yes').lower() in ('yes', 'y', '1', 'true'):
         step('업로드', push)
         step('공유 페이지', publish_share)

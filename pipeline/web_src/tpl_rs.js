@@ -16,6 +16,62 @@ function setRange(days){
   const mx=IDX.dates[0][0],mn=IDX.dates[IDX.dates.length-1][0];
   E('to').value=mx;E('from').value=days===0?mn:days===1?mx:(a=>a<mn?mn:a)(addDays(mx,-(days-1)));
 }
+/* ---------- 차트(일봉 / 3분 · 5분 · 20분봉) ---------- */
+const TF=[['d','일봉'],['3','3분'],['5','5분'],['20','20분']];
+const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const nextWeekday=d=>{const t=new Date(d+'T00:00:00');while(t.getDay()%6===0)t.setDate(t.getDate()+1);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
+const MN={};
+const minDay=T=>{if(!(T in MN))MN[T]=ldz(`data/mn/${T}.txt`).catch(()=>null);return MN[T]};
+function decodeMin(u){const out=[];let t=u.t0,c=u.c[0];
+  for(let i=0;i<u.c.length;i++){if(i){t+=u.d[i-1];c+=u.c[i]}out.push({t,o:c+u.o[i],h:c+u.h[i],l:c-u.l[i],c,v:u.v[i]})}return out}
+function aggregate(bars,n){const g=new Map();
+  bars.forEach(b=>{const k=Math.floor((b.t-540)/n);let a=g.get(k);
+    if(!a)g.set(k,{t:540+k*n,o:b.o,h:b.h,l:b.l,c:b.c,v:b.v});else{a.h=Math.max(a.h,b.h);a.l=Math.min(a.l,b.l);a.c=b.c;a.v+=b.v}});
+  return [...g.values()].sort((x,y)=>x.t-y.t)}
+let TCODE=null;
+async function tickIdx(code){await loadTick();if(!TCODE){TCODE={};TICK.forEach((t,i)=>TCODE[t[0]]=i)}return TCODE[code]}
+async function openChart(rec,host){
+  const [id,code,name,,date,,,,,prev]=rec;
+  if(!host._ready){
+    host._ready=1;host._tf='d';
+    host.innerHTML=`<div class="rs-chh"><b></b><div class="rs-tf" role="group" aria-label="차트 종류">${TF.map(([k,l])=>`<button type="button" data-tf="${k}" aria-pressed="${k==='d'}">${l}</button>`).join('')}</div><span class="rs-chn"></span></div><div class="rs-cm"></div>`;
+    host.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>{host._tf=b.dataset.tf;host.querySelectorAll('[data-tf]').forEach(x=>x.setAttribute('aria-pressed',x===b));paint(rec,host)});
+  }
+  await paint(rec,host);
+}
+async function paint(rec,host){
+  const [id,code,name,broker,date,title,,,goal,prev]=rec,tf=host._tf,box=host.querySelector('.rs-cm'),ttl=host.querySelector('b'),note=host.querySelector('.rs-chn');
+  const setMsg=m=>{box.replaceChildren();box._shell=0;note.textContent=m};
+  ttl.textContent=name+' '+(tf==='d'?'일봉':tf+'분봉');note.textContent='불러오는 중…';
+  try{
+    const ti=await tickIdx(code);
+    if(ti==null)return setMsg('이 종목은 차트 자료가 없습니다.');
+    let idx=DATES.findIndex(d=>d>=date);const inData=idx>=0;
+    if(tf==='d'){
+      if(!inData)idx=DATES.length-1;
+      const rows=await stockRows(ti,Math.max(0,idx-120),Math.min(DATES.length-1,idx+20));
+      if(!rows.length)return setMsg('이 종목의 일봉 자료가 없습니다.');
+      const rp=rows.find(x=>x[0]===idx);
+      ttl.textContent=`${name} 일봉 · 게시일 ${date}`;
+      note.textContent=inData?(DATES[idx]!==date?`게시일(${date})은 휴장일이라 다음 거래일(${DATES[idx]})에 표시합니다. `:'')+'아래 막대는 거래대금(억원)':'게시일 시세가 아직 없어 가장 최근 일봉까지 보여 드립니다.';
+      mountChart(box,rows,{key:'rs'+code+'_'+idx+'_d',marks:inData?[{di:idx,t:'게시일'}]:[],ref:{p:prev||(rp?rp[4]:rows[rows.length-1][4]),t:'게시 전일 종가 대비'},label:name+' 일봉'});
+      return;
+    }
+    const T=inData?DATES[idx]:nextWeekday(date);
+    const day=await minDay(T);
+    const u=day&&day[code];
+    if(!u)return setMsg(`${T} ${name}의 분봉이 없습니다. (분봉은 최근 1년치만 받을 수 있고, 수집이 끝난 날짜부터 표시됩니다.)`);
+    const bars=aggregate(decodeMin(u),+tf);
+    const tms=bars.map(b=>b.t);
+    const rows=bars.map((b,i)=>[i,b.o,b.h,b.l,b.c,b.c*b.v/1e6]);
+    let pc=null;
+    if(inData&&idx>0){const dr=await stockRows(ti,Math.max(0,idx-5),idx-1);if(dr.length)pc=dr[dr.length-1][4]}
+    ttl.textContent=`${name} ${tf}분봉 · ${T}`;
+    note.textContent=(T!==date?`게시일(${date})이 휴장일이라 다음 거래일 기준 · `:'게시일 기준 · ')+'아래 막대는 거래대금(백만원)';
+    mountChart(box,rows,{key:'rs'+code+'_'+T+'_'+tf,ref:pc?{p:pc,t:'전일 종가 대비'}:{p:rows[0][1],t:'시가 대비'},label:`${name} ${tf}분봉`,
+      xl:r=>hhmm(tms[r[0]]),tl:r=>`${T} ${hhmm(tms[r[0]])}`,vu:'백만'});
+  }catch(e){setMsg('차트를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요.')}
+}
 async function render(reset){
   if(reset)SHOWN=PAGE;
   let from=E('from').value,to=E('to').value;
@@ -43,7 +99,13 @@ async function render(reset){
       `<span class="rs-op ${opCls(opn)}" title="${esc(opRaw||'투자의견 없음')}">${opn==='없음'?'의견 없음':esc(opn)}</span></div>`+
       `<div class="rs-meta"><b>${esc(broker)}</b> · ${esc(title)}</div>`+
       `<div class="rs-b"><div class="rs-sm${sum?'':' no'}">${sum?esc(sum):'요약이 없는 리포트입니다. 원문을 확인하세요.'}</div>`+
-      `<a class="rs-go" href="https://stock.naver.com/research/company/${id}" target="_blank" rel="noopener noreferrer">원문</a></div></div>`}).join('');
+      `<div class="rs-act"><button type="button" class="rs-go" data-ch="${id}" aria-expanded="false">차트</button><a class="rs-go" href="https://stock.naver.com/research/company/${id}" target="_blank" rel="noopener noreferrer">원문</a></div></div>`+
+      `<div class="rs-ch" id="rr-ch${id}" hidden></div></div>`}).join('');
+  const byId={};list.forEach(r=>byId[r[0]]=r);
+  E('list').querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>{
+    const host=document.getElementById('rr-ch'+b.dataset.ch),open=host.hidden;
+    host.hidden=!open;b.setAttribute('aria-expanded',open);
+    if(open)openChart(byId[b.dataset.ch],host)});
   E('more').hidden=list.length<=SHOWN;
   E('more').textContent=`더 보기 (${list.length-SHOWN}건 남음)`;
 }

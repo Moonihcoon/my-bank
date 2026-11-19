@@ -14,7 +14,7 @@ function niceTicks(lo,hi,n){const span=hi-lo||1,raw=span/n,p=Math.pow(10,Math.fl
 function drawChart(box,rows,opt={}){
   box.replaceChildren();
   if(!rows||!rows.length){box.textContent='표시할 데이터가 없습니다.';return}
-  const m=opt.m||{mode:'none',list:[],hl:[],vl:[],pend:null},ref=opt.ref,W=Math.max(300,box.clientWidth),HP=300,HV=110,gap=26,L=66,R=12,T=10,B=24;
+  const m=opt.m||{mode:'none',list:[],hl:[],vl:[],pend:null},ref=opt.ref,XL=opt.xl||(r=>ymd(D(r[0]))),TL=opt.tl||(r=>D(r[0])),VU=opt.vu||'억',W=Math.max(300,box.clientWidth),HP=300,HV=110,gap=26,L=66,R=12,T=10,B=24;
   const H=T+HP+gap+HV+B,n=rows.length,step=(W-L-R)/n,bw=Math.max(1,Math.min(14,step*0.7));
   let lo=Math.min(...rows.map(r=>r[3])),hi=Math.max(...rows.map(r=>r[2]));
   const lv=(opt.lines||[]);lv.forEach(l=>{lo=Math.min(lo,l.y);hi=Math.max(hi,l.y)});
@@ -26,9 +26,9 @@ function drawChart(box,rows,opt={}){
   const mk=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e};
   const lab=(x,y,t,c,anchor)=>mk('text',{x,y,'text-anchor':anchor||'middle',style:`fill:${c};font-weight:700;font-size:12.5px;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round`},t);
   niceTicks(lo,hi,5).forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:Y(v),y2:Y(v)});mk('text',{x:L-6,y:Y(v)+4,'text-anchor':'end'},fmt(v))});
-  vt.forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YV(v),y2:YV(v)});mk('text',{x:L-6,y:YV(v)+4,'text-anchor':'end'},fmt(v)+'억')});
+  vt.forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YV(v),y2:YV(v)});mk('text',{x:L-6,y:YV(v)+4,'text-anchor':'end'},fmt(v)+VU)});
   const every=Math.max(1,Math.ceil(90/step));
-  rows.forEach((r,i)=>{if(i%every===0)mk('text',{x:X(i),y:H-6,'text-anchor':'middle'},ymd(D(r[0])))});
+  rows.forEach((r,i)=>{if(i%every===0)mk('text',{x:X(i),y:H-6,'text-anchor':'middle'},XL(r))});
   rows.forEach((r,i)=>{const up=r[4]>=r[1],c=up?'var(--up)':'var(--down)';
     mk('line',{x1:X(i),x2:X(i),y1:Y(r[2]),y2:Y(r[3]),stroke:c,'stroke-width':1});
     const y1=Y(Math.max(r[1],r[4])),y2=Y(Math.min(r[1],r[4]));
@@ -41,7 +41,7 @@ function drawChart(box,rows,opt={}){
   /* 사용자 가로선·세로선 */
   const rtxt=p=>ref?` (${ref.t} ${pctTxt((p/ref.p-1)*100)})`:'';
   m.hl.forEach(h=>{mk('line',{x1:L,x2:W-R,y1:Y(h),y2:Y(h),stroke:'var(--accent)','stroke-width':1.4});lab(W-R-4,Y(h)-5,fmt(h)+rtxt(h),'var(--accent)','end')});
-  m.vl.forEach(i=>{if(i<0||i>=n)return;mk('line',{x1:X(i),x2:X(i),y1:T,y2:T+HP+gap+HV,stroke:'var(--accent)','stroke-width':1.4});lab(X(i),H-B+2,ymd(D(rows[i][0])),'var(--accent)',X(i)>W-60?'end':'middle')});
+  m.vl.forEach(i=>{if(i<0||i>=n)return;mk('line',{x1:X(i),x2:X(i),y1:T,y2:T+HP+gap+HV,stroke:'var(--accent)','stroke-width':1.4});lab(X(i),H-B+2,XL(rows[i]),'var(--accent)',X(i)>W-60?'end':'middle')});
   /* 측정선 */
   m.list.forEach(q=>{const a=q.a,b=q.b,pct=(b.p/a.p-1)*100,c=pct>=0?'var(--up)':'var(--down)';
     mk('line',{x1:X(a.i),y1:Y(a.p),x2:X(b.i),y2:Y(b.p),stroke:c,'stroke-width':2});
@@ -68,9 +68,9 @@ function drawChart(box,rows,opt={}){
     if(chx&&y>=T&&y<=T+HP){const pv=PV(y);chx.setAttribute('x1',X(i));chx.setAttribute('x2',X(i));chx.setAttribute('visibility','visible');
       chy.setAttribute('y1',y);chy.setAttribute('y2',y);chy.setAttribute('visibility','visible');
       cyl.setAttribute('y',y-5);cyl.textContent=fmt(pv)+rtxt(pv);cyl.setAttribute('visibility','visible');
-      cxl.setAttribute('x',Math.min(W-40,Math.max(L+30,X(i))));cxl.textContent=ymd(D(r[0]));cxl.setAttribute('visibility','visible')}
+      cxl.setAttribute('x',Math.min(W-40,Math.max(L+30,X(i))));cxl.textContent=XL(r);cxl.setAttribute('visibility','visible')}
     else if(chx){[chx,chy,cyl,cxl].forEach(e=>e.setAttribute('visibility','hidden'))}
-    tip.innerHTML=`<b>${D(r[0])}</b><br>시 ${fmt(r[1])} 고 ${fmt(r[2])}<br>저 ${fmt(r[3])} 종 ${fmt(r[4])}`+(ch==null?'':` <span class="${ch>=0?'up':'dn'}">(${pctTxt(ch)})</span>`)+`<br>거래대금 ${f1(r[5])}억`;
+    tip.innerHTML=`<b>${TL(r)}</b><br>시 ${fmt(r[1])} 고 ${fmt(r[2])}<br>저 ${fmt(r[3])} 종 ${fmt(r[4])}`+(ch==null?'':` <span class="${ch>=0?'up':'dn'}">(${pctTxt(ch)})</span>`)+`<br>거래대금 ${f1(r[5])}${VU}`;
     tip.hidden=false;const tx=X(i)*rc.width/W;tip.style.left=Math.min(Math.max(0,tx+12),rc.width-tip.offsetWidth)+'px';tip.style.top='8px'});
   svg.addEventListener('pointerleave',()=>{[cross,snap,chx,chy,cyl,cxl].forEach(e=>e&&e.setAttribute('visibility','hidden'));tip.hidden=true});
   svg.addEventListener('click',ev=>{if(m.mode==='none'||m.mode==='cross')return;
@@ -89,15 +89,15 @@ function mountChart(el,rows,opt={}){
     el._shell=1;if(!MOUNTED.includes(el))MOUNTED.push(el);
   }
   const q=s=>$(`[data-r=${s}]`,el),cb=q('chart');el._rows=rows;el._opt=opt;
-  const side=()=>{const m=el._m,R=el._rows,rf=el._opt.ref;
+  const side=()=>{const m=el._m,R=el._rows,rf=el._opt.ref,XLf=el._opt.xl;
     el.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m.mode));
     q('hint').textContent=m.mode==='measure'&&m.pend?'끝 지점을 누르세요. (Esc로 취소)':HINT[m.mode];
     const it=[];
-    m.list.forEach((x,k)=>{const pct=(x.b.p/x.a.p-1)*100,d1=D(R[x.a.i][0]),d2=D(R[x.b.i][0]),cal=Math.round((new Date(d2)-new Date(d1))/864e5);
-      it.push(`<li><b class="${pct>=0?'up':'dn'}">${pctTxt(pct)}</b><small>${ymd(d1)} ${x.a.k} ${fmt(x.a.p)}</small><small>→ ${ymd(d2)} ${x.b.k} ${fmt(x.b.p)}</small><small>${x.b.i-x.a.i}거래일 · ${cal}일</small><button type="button" aria-label="삭제" data-t="list" data-k="${k}">×</button></li>`)});
+    m.list.forEach((x,k)=>{const pct=(x.b.p/x.a.p-1)*100,d1=XLf?XLf(R[x.a.i]):D(R[x.a.i][0]),d2=XLf?XLf(R[x.b.i]):D(R[x.b.i][0]),cal=XLf?0:Math.round((new Date(d2)-new Date(d1))/864e5);
+      it.push(`<li><b class="${pct>=0?'up':'dn'}">${pctTxt(pct)}</b><small>${XLf?d1:ymd(d1)} ${x.a.k} ${fmt(x.a.p)}</small><small>→ ${XLf?d2:ymd(d2)} ${x.b.k} ${fmt(x.b.p)}</small><small>${XLf?(x.b.i-x.a.i)+'봉':(x.b.i-x.a.i)+'거래일 · '+cal+'일'}</small><button type="button" aria-label="삭제" data-t="list" data-k="${k}">×</button></li>`)});
     m.hl.forEach((p,k)=>{it.push(`<li><b>${fmt(p)}</b><small>가로선${rf?` · ${rf.t} ${pctTxt((p/rf.p-1)*100)}`:''}</small><button type="button" aria-label="삭제" data-t="hl" data-k="${k}">×</button></li>`)});
-    m.vl.forEach((i,k)=>{let extra='';if(k){const pi=m.vl[k-1],c0=R[pi][4],c1=R[i][4];extra=`<small>앞 선 대비 ${i-pi}거래일 · 종가 ${pctTxt((c1/c0-1)*100)}</small>`}
-      it.push(`<li><b>${ymd(D(R[i][0]))}</b><small>세로선 · 종가 ${fmt(R[i][4])}</small>${extra}<button type="button" aria-label="삭제" data-t="vl" data-k="${k}">×</button></li>`)});
+    m.vl.forEach((i,k)=>{let extra='';if(k){const pi=m.vl[k-1],c0=R[pi][4],c1=R[i][4];extra=`<small>앞 선 대비 ${i-pi}${XLf?'봉':'거래일'} · 종가 ${pctTxt((c1/c0-1)*100)}</small>`}
+      it.push(`<li><b>${XLf?XLf(R[i]):ymd(D(R[i][0]))}</b><small>세로선 · 종가 ${fmt(R[i][4])}</small>${extra}<button type="button" aria-label="삭제" data-t="vl" data-k="${k}">×</button></li>`)});
     q('list').innerHTML=it.join('')||'<li class="mut">그려 둔 선이 없습니다.</li>';
     q('list').querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{m[b.dataset.t].splice(+b.dataset.k,1);redraw();side()})};
   const redraw=()=>drawChart(cb,el._rows,{...el._opt,m:el._m,changed:()=>{redraw();side()}});
