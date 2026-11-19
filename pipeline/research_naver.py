@@ -6,7 +6,7 @@
 저장:  data/rs/YYYY-MM.json  (월별 리포트 목록)   data/rs/index.json (날짜별 건수)   data/rs/_state.json
 항목:  [번호, 종목코드, 종목명, 증권사, 게시일, 제목, 투자의견(원문), 의견(매수/중립/매도/없음), 목표주가, 게시 전일 종가, 요약]
 
-- 2026-08-01 이후 리포트를 모읍니다. 첫 실행은 오래 걸려서 시간 제한([research] minutes, 기본 20분) 안에서
+- 2026-01-01 이후 리포트를 모읍니다. 첫 실행은 오래 걸려서 시간 제한([research] minutes, 기본 20분) 안에서
   새것부터 받고, 다음 실행에서 이어서 받습니다. (한 번에 다 받으려면 RESEARCH_MINUTES=150 으로 실행)
 - 요약은 본문 첫 부분 약 230자만 보관합니다. 전문은 '원문' 링크(네이버 증권)로 보냅니다.
 - 네이버가 주소를 바꾸면 수집이 멈추고 로그에 남습니다. 이미 모은 내용은 그대로 보입니다.
@@ -19,7 +19,7 @@ PIPE = Path(__file__).resolve().parent
 sys.path[:0] = [str(PIPE)]
 from common import REPO, opt, log  # noqa: E402
 
-START = '2026-08-01'
+START = '2026-01-01'
 LIST = 'https://m.stock.naver.com/api/research/company?page={p}&pageSize={n}'
 DETAIL = 'https://m.stock.naver.com/api/research/company/{i}'
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36'
@@ -195,7 +195,7 @@ def main():
     deadline = time.time() + minutes * 60
     st, state = load_store()
     fails = state.get('fail', {})
-    backfill_done = bool(state.get('done'))
+    backfill_done = bool(state.get('done')) and state.get('start') == START   # 시작일이 바뀌면 다시 이어받기
     log(f'리서치 수집 시작: 저장된 리포트 {len(st)}건, 시간 제한 {minutes:.0f}분, 이어받기 {"끝남" if backfill_done else "진행 중"}')
     items = list_items(set(st), backfill_done, 100)
     if not items:
@@ -236,6 +236,7 @@ def main():
         time.sleep(0.2)
     remain = [r for r in todo if r['researchId'] not in st and fails.get(str(r['researchId']), 0) < 3]
     state['done'] = not remain
+    state['start'] = START
     state['fail'] = {k: v for k, v in fails.items() if int(k) not in st}
     save_store(st, state)
     log(f'리서치 수집 끝: 새로 {got}건, 실패 {bad}건, 남음 {len(remain)}건, 전체 {len(st)}건')

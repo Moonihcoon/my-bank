@@ -19,7 +19,7 @@ from common import REPO, load_panel, log  # noqa: E402
 
 SRC = REPO.parent / 'minute_all'
 OUT = REPO / 'data' / 'mn'
-START = '2026-08-01'
+START = '2026-01-01'
 REFRESH_DAYS = 7
 
 
