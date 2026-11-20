@@ -234,6 +234,18 @@ def main():
             save_store(st, {**state, 'fail': fails})
             log(f'  리서치 {got}건 받음…')
         time.sleep(0.2)
+    # 게시 전일 종가를 일봉 자료(대시보드와 같은 값)로 전부 다시 맞춥니다. (받을 때 값이 잠정치였을 수 있음)
+    try:
+        cl2 = Closes({r[1] for r in st.values()})
+        fixed = 0
+        for r in st.values():
+            v = cl2.prev(r[1], r[4])
+            if v and v != r[9]:
+                r[9] = v
+                fixed += 1
+        log(f'게시 전일 종가 다시 맞춤: {fixed}건 수정')
+    except Exception as e:  # noqa: BLE001
+        log(f'게시 전일 종가 다시 맞추기 실패: {e}')
     remain = [r for r in todo if r['researchId'] not in st and fails.get(str(r['researchId']), 0) < 3]
     state['done'] = not remain
     state['start'] = START
