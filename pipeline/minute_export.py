@@ -106,6 +106,12 @@ def main():
     if not SRC.exists():
         log('분봉 내보내기: minute_all 폴더가 없어 건너뜁니다.')
         return
+    import time as _t
+    newest = max((f.stat().st_mtime for f in SRC.glob('*.parquet')), default=0)
+    if _t.time() - newest > 4 * 86400:
+        # 분봉을 매일 받지 않는 PC(오래된 원본)에서 돌리면 이미 만들어진 날짜를 빈 값으로 덮어쓸 수 있어 건너뜁니다.
+        log('분봉 내보내기: 이 PC의 분봉 원본이 4일 넘게 갱신되지 않아 건너뜁니다. (분봉을 받는 PC에서 만듭니다)')
+        return
     by_code: dict[str, set[str]] = {}
     for T, cs in todo.items():
         for c in cs:
