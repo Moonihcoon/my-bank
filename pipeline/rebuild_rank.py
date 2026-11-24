@@ -6,7 +6,7 @@ from pathlib import Path
 
 PIPE = Path(__file__).resolve().parent
 sys.path[:0] = [str(PIPE), str(PIPE / 'analysis')]
-from common import work_dir, log  # noqa: E402
+from common import work_dir, log, REPO  # noqa: E402
 import run_all  # noqa: E402
 
 
@@ -24,6 +24,24 @@ def main():
     finally:
         os.chdir(cwd)
     log('상승률 200 화면 다시 만들기 완료')
+    # 급등주 대시보드(index.html)에도 같은 탭을 넣어 같은 데이터로 보이게 합니다(분석 재계산 없이 현재 index.html 만 손봄).
+    try:
+        src = REPO / 'index.html'
+        if src.exists():
+            shutil.copy(src, web / 'index.html')
+            os.chdir(w)
+            try:
+                runpy.run_path(str(PIPE / 'analysis' / 'build_dash_extra.py'), run_name='__main__')
+            finally:
+                os.chdir(cwd)
+            page = (web / 'index.html').read_text(encoding='utf-8')
+            if not page.lstrip().lower().startswith('<!doctype'):
+                page = run_all.HEAD + page
+            src.write_text(page, encoding='utf-8')
+            log('급등주 대시보드에 상승률 200 과 같은 탭 반영 완료')
+            run_all.push()
+    except Exception as e:
+        log(f'급등주 대시보드 반영 오류: {type(e).__name__}: {e}')
     run_all.publish_share()
 
 
