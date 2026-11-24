@@ -38,8 +38,8 @@ function drawChart(box,rows,opt={}){
     [30,70].forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(v),y2:YR(v),'stroke-dasharray':'3 3'});mk('text',{x:L-6,y:YR(v)+4,'text-anchor':'end'},v)});
     mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(0),y2:YR(0)});mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(100),y2:YR(100)});
     mk('text',{x:L+4,y:R0+12,style:'fill:var(--ink-3);font-weight:600'},'RSI(14)');
-    /* 구간별 색: 70 이상 빨강 · 60~69 주황 · 30 이하 초록 · 그 외 기본색 */
-    const rc=v=>v>=70?'#e03131':v>=60?'#f08c00':v<=30?'#2f9e44':'var(--accent)';
+    /* 구간별 색: 70 이상·30 이하 빨강 · 60~69 주황 · 그 외 기본색 */
+    const rc=v=>v>=70||v<=30?'#e03131':v>=60?'#f08c00':'var(--accent)';
     const seg={};RS.forEach((v,i)=>{if(v==null||i===0||RS[i-1]==null)return;const c=rc(v);
       seg[c]=(seg[c]||'')+'M'+X(i-1).toFixed(1)+' '+YR(RS[i-1]).toFixed(1)+'L'+X(i).toFixed(1)+' '+YR(v).toFixed(1)});
     Object.keys(seg).forEach(c=>mk('path',{d:seg[c],fill:'none',stroke:c,'stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round'}));
