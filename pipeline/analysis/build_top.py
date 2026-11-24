@@ -9,6 +9,8 @@ MAP = open('web/tpl_map.html', encoding='utf-8').read()
 MAPJS = open('web/tpl_map.js', encoding='utf-8').read()
 RS = open('web/tpl_rs.html', encoding='utf-8').read()
 RSJS = open('web/tpl_rs.js', encoding='utf-8').read()
+IX = open('web/tpl_ix.html', encoding='utf-8').read()
+IXJS = open('web/tpl_ix.js', encoding='utf-8').read()
 head = open('web/tpl_head.html', encoding='utf-8').read()
 body = open('web/tpl_body.html', encoding='utf-8').read()
 js = open('web/tpl_js.js', encoding='utf-8').read()
@@ -26,7 +28,8 @@ top = re.sub(r'<nav role="tablist">.*?</nav>',
              '<nav role="tablist">\n<button role="tab" data-tab="calendar" aria-selected="true">당일 상승 200</button>\n'
              '<button role="tab" data-tab="reasons" aria-selected="false">상승 이유</button>\n'
              '<button role="tab" data-tab="map" aria-selected="false">시장 지도</button>\n'
-             '<button role="tab" data-tab="research" aria-selected="false">리서치</button>\n</nav>', top, count=1, flags=re.S)
+             '<button role="tab" data-tab="research" aria-selected="false">리서치</button>\n'
+             '<button role="tab" data-tab="ix" aria-selected="false">지수차트</button>\n</nav>', top, count=1, flags=re.S)
 
 secs = ''
 for k in KEEP:
@@ -37,18 +40,18 @@ for k in KEEP:
         sec = re.sub(r'<p class="sub">.*?</p>\n?', '', sec, count=1, flags=re.S)
     secs += sec + '\n\n'
 secs = secs.replace('<section id="p-calendar" hidden>', '<section id="p-calendar">')
-page_body = top + secs + MAP + RS + '</div>\n'
+page_body = top + secs + MAP + RS + IX + '</div>\n'
 
 old_list = "['stats','list','stocks','screen','cand','calendar','reasons']"
 assert js.count(old_list) == 2, js.count(old_list)
-js = js.replace(old_list, "['calendar','reasons','map','research']")
+js = js.replace(old_list, "['calendar','reasons','map','research','ix']")
 anchor = "if(name==='reasons')await tab5();"
 assert js.count(anchor) == 1
-js = js.replace(anchor, anchor + "if(name==='map')await tabMap();if(name==='research')await tabRs();")
+js = js.replace(anchor, anchor + "if(name==='map')await tabMap();if(name==='research')await tabRs();if(name==='ix')await tabIx();")
 assert ":'stats')" in js
 js = js.replace(":'stats')", ":'calendar')")
 js = re.sub(r"\$\('#upd-btn'\)\.addEventListener\(.*?\);\n?", '', js, flags=re.S)
 
-page = head + '<style>.wrap{max-width:1360px}</style>\n' + page_body + '<script>' + js + '</script><script>' + MAPJS + '</script><script>' + RSJS + '</script>'
+page = head + '<style>.wrap{max-width:1360px}</style>\n' + page_body + '<script>' + js + '</script><script>' + MAPJS + '</script><script>' + RSJS + '</script><script>' + IXJS + '</script>'
 open('web/rank.html', 'w', encoding='utf-8').write(page)
 print('rank.html', len(page))

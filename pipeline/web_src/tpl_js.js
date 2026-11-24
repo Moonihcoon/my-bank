@@ -14,8 +14,8 @@ function niceTicks(lo,hi,n){const span=hi-lo||1,raw=span/n,p=Math.pow(10,Math.fl
 function drawChart(box,rows,opt={}){
   box.replaceChildren();
   if(!rows||!rows.length){box.textContent='표시할 데이터가 없습니다.';return}
-  const m=opt.m||{mode:'none',list:[],hl:[],vl:[],pend:null},ref=opt.ref,XL=opt.xl||(r=>ymd(D(r[0]))),TL=opt.tl||(r=>D(r[0])),VU=opt.vu||'억',W=Math.max(300,box.clientWidth),HP=300,HV=110,gap=26,L=66,R=12,T=10,B=24;
-  const H=T+HP+gap+HV+B,n=rows.length,step=(W-L-R)/n,bw=Math.max(1,Math.min(14,step*0.7));
+  const m=opt.m||{mode:'none',list:[],hl:[],vl:[],pend:null},ref=opt.ref,XL=opt.xl||(r=>ymd(D(r[0]))),TL=opt.tl||(r=>D(r[0])),VU=opt.vu||'억',W=Math.max(300,box.clientWidth),HP=300,HV=110,gap=26,L=66,R=12,T=10,B=24,RS=opt.rsi||null,G2=RS?30:0,HR=RS?90:0,PF=opt.pf||fmt,VF=opt.vf||null;
+  const BH=T+HP+gap+HV+G2+HR,H=BH+B,n=rows.length,step=(W-L-R)/n,bw=Math.max(1,Math.min(14,step*0.7));
   let lo=Math.min(...rows.map(r=>r[3])),hi=Math.max(...rows.map(r=>r[2]));
   const lv=(opt.lines||[]);lv.forEach(l=>{lo=Math.min(lo,l.y);hi=Math.max(hi,l.y)});
   const pad=(hi-lo)*0.05;lo=Math.max(0,lo-pad);hi+=pad;
@@ -25,8 +25,8 @@ function drawChart(box,rows,opt={}){
   if(m.mode!=='none')svg.style.cursor='crosshair';
   const mk=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e};
   const lab=(x,y,t,c,anchor)=>mk('text',{x,y,'text-anchor':anchor||'middle',style:`fill:${c};font-weight:700;font-size:12.5px;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round`},t);
-  niceTicks(lo,hi,5).forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:Y(v),y2:Y(v)});mk('text',{x:L-6,y:Y(v)+4,'text-anchor':'end'},fmt(v))});
-  vt.forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YV(v),y2:YV(v)});mk('text',{x:L-6,y:YV(v)+4,'text-anchor':'end'},fmt(v)+VU)});
+  niceTicks(lo,hi,5).forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:Y(v),y2:Y(v)});mk('text',{x:L-6,y:Y(v)+4,'text-anchor':'end'},PF(v))});
+  vt.forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YV(v),y2:YV(v)});mk('text',{x:L-6,y:YV(v)+4,'text-anchor':'end'},(VF||fmt)(v)+VU)});
   const every=Math.max(1,Math.ceil(90/step));
   rows.forEach((r,i)=>{if(i%every===0)mk('text',{x:X(i),y:H-6,'text-anchor':'middle'},XL(r))});
   rows.forEach((r,i)=>{const up=r[4]>=r[1],c=up?'var(--up)':'var(--down)';
@@ -34,14 +34,21 @@ function drawChart(box,rows,opt={}){
     const y1=Y(Math.max(r[1],r[4])),y2=Y(Math.min(r[1],r[4]));
     mk('rect',{x:X(i)-bw/2,y:y1,width:bw,height:Math.max(1,y2-y1),fill:c});
     mk('rect',{x:X(i)-bw/2,y:YV(r[5]),width:bw,height:Math.max(0,YV(0)-YV(r[5])),fill:c,opacity:.75})});
+  if(RS){const R0=T+HP+gap+HV+G2,YR=v=>R0+HR*(1-v/100);
+    [30,70].forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(v),y2:YR(v),'stroke-dasharray':'3 3'});mk('text',{x:L-6,y:YR(v)+4,'text-anchor':'end'},v)});
+    mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(0),y2:YR(0)});mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(100),y2:YR(100)});
+    mk('text',{x:L+4,y:R0+12,style:'fill:var(--ink-3);font-weight:600'},'RSI(14)');
+    let d='',on=false;RS.forEach((v,i)=>{if(v==null){on=false;return}d+=(on?'L':'M')+X(i).toFixed(1)+' '+YR(v).toFixed(1);on=true});
+    mk('path',{d,fill:'none',stroke:'var(--accent)','stroke-width':1.5});
+    const lv0=RS.length?RS[RS.length-1]:null;if(lv0!=null)lab(W-R-4,R0+12,'RSI '+lv0.toFixed(1),'var(--accent)','end')}
   (opt.marks||[]).forEach((mm,mi)=>{const i=rows.findIndex(r=>r[0]===mm.di);if(i<0)return;
-    mk('line',{x1:X(i),x2:X(i),y1:T,y2:T+HP+gap+HV,stroke:'var(--mark)','stroke-width':1.2,'stroke-dasharray':'4 3'});
+    mk('line',{x1:X(i),x2:X(i),y1:T,y2:BH,stroke:'var(--mark)','stroke-width':1.2,'stroke-dasharray':'4 3'});
     mk('text',{x:Math.min(W-R-4,X(i)+4),y:T+10+13*mi,style:'fill:var(--mark);font-weight:600','text-anchor':X(i)>W-80?'end':'start'},mm.t)});
   lv.forEach(l=>{mk('line',{x1:L,x2:W-R,y1:Y(l.y),y2:Y(l.y),stroke:'var(--mark)','stroke-width':1,'stroke-dasharray':'2 3'});mk('text',{x:L+4,y:Y(l.y)-3,style:'fill:var(--mark)'},l.t)});
   /* 사용자 가로선·세로선 */
   const rtxt=p=>ref?` (${ref.t} ${pctTxt((p/ref.p-1)*100)})`:'';
-  m.hl.forEach(h=>{mk('line',{x1:L,x2:W-R,y1:Y(h),y2:Y(h),stroke:'var(--accent)','stroke-width':1.4});lab(W-R-4,Y(h)-5,fmt(h)+rtxt(h),'var(--accent)','end')});
-  m.vl.forEach(i=>{if(i<0||i>=n)return;mk('line',{x1:X(i),x2:X(i),y1:T,y2:T+HP+gap+HV,stroke:'var(--accent)','stroke-width':1.4});lab(X(i),H-B+2,XL(rows[i]),'var(--accent)',X(i)>W-60?'end':'middle')});
+  m.hl.forEach(h=>{mk('line',{x1:L,x2:W-R,y1:Y(h),y2:Y(h),stroke:'var(--accent)','stroke-width':1.4});lab(W-R-4,Y(h)-5,PF(h)+rtxt(h),'var(--accent)','end')});
+  m.vl.forEach(i=>{if(i<0||i>=n)return;mk('line',{x1:X(i),x2:X(i),y1:T,y2:BH,stroke:'var(--accent)','stroke-width':1.4});lab(X(i),H-B+2,XL(rows[i]),'var(--accent)',X(i)>W-60?'end':'middle')});
   /* 측정선 */
   m.list.forEach(q=>{const a=q.a,b=q.b,pct=(b.p/a.p-1)*100,c=pct>=0?'var(--up)':'var(--down)';
     mk('line',{x1:X(a.i),y1:Y(a.p),x2:X(b.i),y2:Y(b.p),stroke:c,'stroke-width':2});
@@ -51,10 +58,10 @@ function drawChart(box,rows,opt={}){
   if(m.pend){mk('circle',{cx:X(m.pend.i),cy:Y(m.pend.p),r:5,fill:'var(--accent)',stroke:'var(--panel)','stroke-width':1.5});
     rb=mk('line',{x1:X(m.pend.i),y1:Y(m.pend.p),x2:X(m.pend.i),y2:Y(m.pend.p),stroke:'var(--accent)','stroke-width':1.5,'stroke-dasharray':'4 3'});rbt=lab(X(m.pend.i),Y(m.pend.p)-10,'','var(--accent)')}
   if(m.mode==='measure')snap=mk('circle',{r:5,fill:'none',stroke:'var(--accent)','stroke-width':2,visibility:'hidden'});
-  if(m.mode==='cross'){chx=mk('line',{y1:T,y2:T+HP+gap+HV,stroke:'var(--ink)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'});
+  if(m.mode==='cross'){chx=mk('line',{y1:T,y2:BH,stroke:'var(--ink)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'});
     chy=mk('line',{x1:L,x2:W-R,stroke:'var(--ink)','stroke-width':1,'stroke-dasharray':'3 3',visibility:'hidden'});
     cyl=lab(W-R-4,0,'','var(--ink)','end');cxl=lab(0,H-B+2,'','var(--ink)');cyl.setAttribute('visibility','hidden');cxl.setAttribute('visibility','hidden')}
-  const cross=mk('line',{y1:T,y2:T+HP+gap+HV,stroke:'var(--ink-3)','stroke-width':1,visibility:'hidden'});
+  const cross=mk('line',{y1:T,y2:BH,stroke:'var(--ink-3)','stroke-width':1,visibility:'hidden'});
   const tip=document.createElement('div');tip.className='tip';tip.hidden=true;
   box.appendChild(svg);box.appendChild(tip);
   const pt0=ev=>{const rc=svg.getBoundingClientRect(),x=(ev.clientX-rc.left)*W/rc.width,y=(ev.clientY-rc.top)*H/rc.height,i=Math.floor((x-L)/step);return {rc,x,y,i}};
@@ -67,16 +74,16 @@ function drawChart(box,rows,opt={}){
       if(rb){const pct=(pt.p/m.pend.p-1)*100;rb.setAttribute('x2',X(i));rb.setAttribute('y2',Y(pt.p));rbt.setAttribute('x',(X(i)+X(m.pend.i))/2);rbt.setAttribute('y',(Y(pt.p)+Y(m.pend.p))/2-8);rbt.textContent=pctTxt(pct)}}
     if(chx&&y>=T&&y<=T+HP){const pv=PV(y);chx.setAttribute('x1',X(i));chx.setAttribute('x2',X(i));chx.setAttribute('visibility','visible');
       chy.setAttribute('y1',y);chy.setAttribute('y2',y);chy.setAttribute('visibility','visible');
-      cyl.setAttribute('y',y-5);cyl.textContent=fmt(pv)+rtxt(pv);cyl.setAttribute('visibility','visible');
+      cyl.setAttribute('y',y-5);cyl.textContent=PF(pv)+rtxt(pv);cyl.setAttribute('visibility','visible');
       cxl.setAttribute('x',Math.min(W-40,Math.max(L+30,X(i))));cxl.textContent=XL(r);cxl.setAttribute('visibility','visible')}
     else if(chx){[chx,chy,cyl,cxl].forEach(e=>e.setAttribute('visibility','hidden'))}
-    tip.innerHTML=`<b>${TL(r)}</b><br>시 ${fmt(r[1])} 고 ${fmt(r[2])}<br>저 ${fmt(r[3])} 종 ${fmt(r[4])}`+(ch==null?'':` <span class="${ch>=0?'up':'dn'}">(${pctTxt(ch)})</span>`)+`<br>거래대금 ${f1(r[5])}${VU}`;
+    tip.innerHTML=`<b>${TL(r)}</b><br>시 ${PF(r[1])} 고 ${PF(r[2])}<br>저 ${PF(r[3])} 종 ${PF(r[4])}`+(ch==null?'':` <span class="${ch>=0?'up':'dn'}">(${pctTxt(ch)})</span>`)+`<br>${opt.vl||'거래대금'} ${(VF||f1)(r[5])}${VU}`+(RS?`<br>RSI ${RS[i]==null?'–':RS[i].toFixed(1)}`:'');
     tip.hidden=false;const tx=X(i)*rc.width/W;tip.style.left=Math.min(Math.max(0,tx+12),rc.width-tip.offsetWidth)+'px';tip.style.top='8px'});
   svg.addEventListener('pointerleave',()=>{[cross,snap,chx,chy,cyl,cxl].forEach(e=>e&&e.setAttribute('visibility','hidden'));tip.hidden=true});
   svg.addEventListener('click',ev=>{if(m.mode==='none'||m.mode==='cross')return;
     if(m.mode==='measure'){const pt=pick(ev);if(!pt)return;const q={i:pt.i,p:pt.p,k:pt.k};
       if(!m.pend)m.pend=q;else{let a=m.pend,b=q;if(b.i<a.i)[a,b]=[b,a];m.list.push({a,b});m.pend=null}}
-    else if(m.mode==='h'){const {y}=pt0(ev);if(y<T||y>T+HP)return;m.hl.push(Math.round(PV(y)))}
+    else if(m.mode==='h'){const {y}=pt0(ev);if(y<T||y>T+HP)return;m.hl.push(opt.pf?Math.round(PV(y)*100)/100:Math.round(PV(y)))}
     else if(m.mode==='v'){const {i}=pt0(ev);if(i<0||i>=n)return;m.vl.push(i);m.vl.sort((a,b)=>a-b)}
     if(opt.changed)opt.changed()});
 }
@@ -89,15 +96,15 @@ function mountChart(el,rows,opt={}){
     el._shell=1;if(!MOUNTED.includes(el))MOUNTED.push(el);
   }
   const q=s=>$(`[data-r=${s}]`,el),cb=q('chart');el._rows=rows;el._opt=opt;
-  const side=()=>{const m=el._m,R=el._rows,rf=el._opt.ref,XLf=el._opt.xl;
+  const side=()=>{const m=el._m,R=el._rows,rf=el._opt.ref,XLf=el._opt.xl,PF=el._opt.pf||fmt;
     el.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m.mode));
     q('hint').textContent=m.mode==='measure'&&m.pend?'끝 지점을 누르세요. (Esc로 취소)':HINT[m.mode];
     const it=[];
     m.list.forEach((x,k)=>{const pct=(x.b.p/x.a.p-1)*100,d1=XLf?XLf(R[x.a.i]):D(R[x.a.i][0]),d2=XLf?XLf(R[x.b.i]):D(R[x.b.i][0]),cal=XLf?0:Math.round((new Date(d2)-new Date(d1))/864e5);
-      it.push(`<li><b class="${pct>=0?'up':'dn'}">${pctTxt(pct)}</b><small>${XLf?d1:ymd(d1)} ${x.a.k} ${fmt(x.a.p)}</small><small>→ ${XLf?d2:ymd(d2)} ${x.b.k} ${fmt(x.b.p)}</small><small>${XLf?(x.b.i-x.a.i)+'봉':(x.b.i-x.a.i)+'거래일 · '+cal+'일'}</small><button type="button" aria-label="삭제" data-t="list" data-k="${k}">×</button></li>`)});
-    m.hl.forEach((p,k)=>{it.push(`<li><b>${fmt(p)}</b><small>가로선${rf?` · ${rf.t} ${pctTxt((p/rf.p-1)*100)}`:''}</small><button type="button" aria-label="삭제" data-t="hl" data-k="${k}">×</button></li>`)});
+      it.push(`<li><b class="${pct>=0?'up':'dn'}">${pctTxt(pct)}</b><small>${XLf?d1:ymd(d1)} ${x.a.k} ${PF(x.a.p)}</small><small>→ ${XLf?d2:ymd(d2)} ${x.b.k} ${PF(x.b.p)}</small><small>${XLf?(x.b.i-x.a.i)+'봉':(x.b.i-x.a.i)+'거래일 · '+cal+'일'}</small><button type="button" aria-label="삭제" data-t="list" data-k="${k}">×</button></li>`)});
+    m.hl.forEach((p,k)=>{it.push(`<li><b>${PF(p)}</b><small>가로선${rf?` · ${rf.t} ${pctTxt((p/rf.p-1)*100)}`:''}</small><button type="button" aria-label="삭제" data-t="hl" data-k="${k}">×</button></li>`)});
     m.vl.forEach((i,k)=>{let extra='';if(k){const pi=m.vl[k-1],c0=R[pi][4],c1=R[i][4];extra=`<small>앞 선 대비 ${i-pi}${XLf?'봉':'거래일'} · 종가 ${pctTxt((c1/c0-1)*100)}</small>`}
-      it.push(`<li><b>${XLf?XLf(R[i]):ymd(D(R[i][0]))}</b><small>세로선 · 종가 ${fmt(R[i][4])}</small>${extra}<button type="button" aria-label="삭제" data-t="vl" data-k="${k}">×</button></li>`)});
+      it.push(`<li><b>${XLf?XLf(R[i]):ymd(D(R[i][0]))}</b><small>세로선 · 종가 ${PF(R[i][4])}</small>${extra}<button type="button" aria-label="삭제" data-t="vl" data-k="${k}">×</button></li>`)});
     q('list').innerHTML=it.join('')||'<li class="mut">그려 둔 선이 없습니다.</li>';
     q('list').querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{m[b.dataset.t].splice(+b.dataset.k,1);redraw();side()})};
   const redraw=()=>drawChart(cb,el._rows,{...el._opt,m:el._m,changed:()=>{redraw();side()}});

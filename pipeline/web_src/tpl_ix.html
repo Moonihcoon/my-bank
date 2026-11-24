@@ -1,0 +1,27 @@
+<style>
+/* ===== 지수차트 탭 (상승률 200 전용). #p-ix 안에서만 적용됩니다 ===== */
+#p-ix .ix-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+#p-ix .ix-bar label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-2)}
+#p-ix .ix-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+#p-ix .ix-seg button{all:unset;cursor:pointer;padding:6px 16px;font-size:13px;color:var(--ink-2);border-left:1px solid var(--line)}
+#p-ix .ix-seg button:first-child{border-left:0}
+#p-ix .ix-seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#p-ix .ix-seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#p-ix .ix-nav{display:flex;gap:6px;flex-wrap:wrap}
+#p-ix .ix-info{margin:6px 0 10px;color:var(--ink-2);font-size:13px}
+#p-ix .ix-cm{min-width:0}
+</style>
+<section id="p-ix" hidden>
+<div class="card">
+<div class="ix-bar">
+<label>지수<select id="ix-mkt" aria-label="지수 선택"><option value="k">코스피</option><option value="q">코스닥</option></select></label>
+<div class="ix-seg" role="group" aria-label="차트 종류"><button type="button" data-ik="d" aria-pressed="true">일봉</button><button type="button" data-ik="min" aria-pressed="false">분봉</button><button type="button" data-ik="m" aria-pressed="false">월봉</button></div>
+<label id="ix-mintw" hidden>분봉 간격<select id="ix-mint" aria-label="분봉 간격"><option value="1">1분</option><option value="3">3분</option><option value="5" selected>5분</option><option value="10">10분</option><option value="30">30분</option><option value="60">60분</option></select></label>
+<label>시작일<input type="date" id="ix-from" aria-label="시작일" min="2016-01-01"></label>
+<label>종료일<input type="date" id="ix-to" aria-label="종료일" min="2016-01-01"></label>
+<div class="ix-nav" role="group" aria-label="기간 바로가기"><button type="button" class="btn" data-ir="1">1개월</button><button type="button" class="btn" data-ir="3">3개월</button><button type="button" class="btn" data-ir="12">1년</button><button type="button" class="btn" data-ir="36">3년</button><button type="button" class="btn" data-ir="0">전체</button></div>
+</div>
+<p class="ix-info" id="ix-info"></p>
+<div class="ix-cm" id="ix-cm"></div>
+</div>
+</section>
