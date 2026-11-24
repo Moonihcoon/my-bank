@@ -45,19 +45,21 @@ async function paint(){
     if(f>t)return show('시작일이 종료일보다 늦습니다.');
     const days=DAILY[key];
     let rows,cl,vals,xl,tl,vk='a',unitMsg,notes=[];
-    if(ST.kind==='d'||ST.kind==='m'){
-      let arr=days.map(r=>({d:r[0],o:r[1],h:r[2],l:r[3],c:r[4],v:r[5]}));
-      if(ST.kind==='m'){const g=new Map();arr.forEach(r=>{const k=Math.floor(r.d/100);const a=g.get(k);
-        if(!a)g.set(k,{d:k,o:r.o,h:r.h,l:r.l,c:r.c,v:r.v});else{a.h=Math.max(a.h,r.h);a.l=Math.min(a.l,r.l);a.c=r.c;a.v+=r.v}});arr=[...g.values()]}
+    if(ST.kind!=='min'){
+      const dk=ST.kind;
+      let arr=days.map(r=>({d0:r[0],d:r[0],o:r[1],h:r[2],l:r[3],c:r[4],v:r[5]}));
+      if(dk!=='d'){const g=new Map();
+        const wk=n=>{const y=Math.floor(n/10000),m=Math.floor(n/100)%100-1,dd=n%100,t=new Date(y,m,dd);t.setDate(t.getDate()-((t.getDay()+6)%7));return t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate()};
+        arr.forEach(r=>{const k=dk==='m'?Math.floor(r.d/100):wk(r.d);const a=g.get(k);
+          if(!a)g.set(k,{d0:r.d,d:r.d,o:r.o,h:r.h,l:r.l,c:r.c,v:r.v});else{a.h=Math.max(a.h,r.h);a.l=Math.min(a.l,r.l);a.c=r.c;a.v+=r.v;a.d=r.d}});arr=[...g.values()]}
       const rs=rsi(arr.map(r=>r.c));
-      const f0=ST.kind==='m'?+f.slice(0,4)*100+ +f.slice(5,7):+f.replace(/-/g,''),t0=ST.kind==='m'?+t.slice(0,4)*100+ +t.slice(5,7):+t.replace(/-/g,'');
-      const idx=[];arr.forEach((r,i)=>{if(r.d>=f0&&r.d<=t0)idx.push(i)});
+      const f0=+f.replace(/-/g,''),t0=+t.replace(/-/g,'');
+      const idx=[];arr.forEach((r,i)=>{if(r.d>=f0&&r.d0<=t0)idx.push(i)});
       if(!idx.length)return show('이 기간에는 자료가 없습니다.');
       const sel=idx.map(i=>arr[i]);
       rows=sel.map((r,i)=>[i,r.o,r.h,r.l,r.c,r.v]);cl=idx.map(i=>rs[i]);
-      const mon=ST.kind==='m';
-      xl=r=>{const s=String(sel[r[0]].d);return mon?s.slice(2,4)+'.'+s.slice(4,6):s.slice(2,4)+'.'+s.slice(4,6)+'.'+s.slice(6,8)};
-      tl=r=>{const s=String(sel[r[0]].d);return mon?s.slice(0,4)+'-'+s.slice(4,6):iso(sel[r[0]].d)};
+      xl=r=>{const s=String(sel[r[0]].d0);return dk==='m'?s.slice(2,4)+'.'+s.slice(4,6):s.slice(2,4)+'.'+s.slice(4,6)+'.'+s.slice(6,8)};
+      tl=r=>{const q=sel[r[0]],s=String(q.d0);return dk==='m'?s.slice(0,4)+'-'+s.slice(4,6):dk==='w'?iso(q.d0)+' ~ '+iso(q.d).slice(5)+' 주':iso(q.d0)};
     }else{
       const all=(META.minute_days||[]).filter(d=>d>=f&&d<=t);
       if(!all.length)return show(META.minute_days&&META.minute_days.length?`이 기간에는 분봉이 없습니다. 분봉은 ${META.minute_days[0]} ~ ${META.minute_days[META.minute_days.length-1]} 사이만 있습니다.`:'분봉 자료가 아직 없습니다.');
@@ -77,7 +79,7 @@ async function paint(){
     if(vk==='a'){U=moneyUnit(vmax);label='거래대금'}else{U=shareUnit(vmax);label='거래량'}
     rows.forEach(r=>{r[5]=r[5]/U[2]});
     const first=rows[0][4],lastd=rows[rows.length-1];
-    E('info').textContent=`${nm} ${ST.kind==='d'?'일봉':ST.kind==='m'?'월봉':E('mint').value+'분봉'} · ${rows.length.toLocaleString('ko-KR')}개 · 아래 막대: ${label}(${U[0]}), 그 아래: RSI(14)`+(notes.length?' · '+notes.join(' '):'');
+    E('info').textContent=`${nm} ${({d:'일봉',w:'주봉',m:'월봉'})[ST.kind]||E('mint').value+'분봉'} · ${rows.length.toLocaleString('ko-KR')}개 · 아래 막대: ${label}(${U[0]}), 그 아래: RSI(14)`+(notes.length?' · '+notes.join(' '):'');
     mountChart(host,rows,{key:`ix|${key}|${ST.kind}|${E('mint').value}|${f}|${t}`,xl,tl,vu:U[1],vf:vfm,vl:label,pf:px,rsi:cl,
       ref:{p:first,t:'기간 시작 종가 대비'},label:nm+' 지수 차트'});
   }catch(e){show('지수 자료를 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.')}

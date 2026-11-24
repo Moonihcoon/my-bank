@@ -125,7 +125,7 @@ def encode_day(bars, sc, ve, vk):
          'h': [round(b[2] / sc * S) - ci[i] for i, b in enumerate(bars)],
          'l': [ci[i] - round(b[3] / sc * S) for i, b in enumerate(bars)],
          's': S, 'vk': vk}
-    d['v'] = [round(b[6] * ve * 100) if vk == 'a' else int(b[5]) for b in bars]   # 'a': 억원×100(=백만원), 'v': 주
+    d['v'] = [round(b[6] * ve * 100) if vk == 'a' else int(b[5] * 1000) for b in bars]   # 'a': 억원×100(=백만원), 'v': 주 (키움 업종 거래량은 천주 단위)
     return d
 
 

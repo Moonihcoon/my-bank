@@ -38,9 +38,12 @@ function drawChart(box,rows,opt={}){
     [30,70].forEach(v=>{mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(v),y2:YR(v),'stroke-dasharray':'3 3'});mk('text',{x:L-6,y:YR(v)+4,'text-anchor':'end'},v)});
     mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(0),y2:YR(0)});mk('line',{class:'gl',x1:L,x2:W-R,y1:YR(100),y2:YR(100)});
     mk('text',{x:L+4,y:R0+12,style:'fill:var(--ink-3);font-weight:600'},'RSI(14)');
-    let d='',on=false;RS.forEach((v,i)=>{if(v==null){on=false;return}d+=(on?'L':'M')+X(i).toFixed(1)+' '+YR(v).toFixed(1);on=true});
-    mk('path',{d,fill:'none',stroke:'var(--accent)','stroke-width':1.5});
-    const lv0=RS.length?RS[RS.length-1]:null;if(lv0!=null)lab(W-R-4,R0+12,'RSI '+lv0.toFixed(1),'var(--accent)','end')}
+    /* 구간별 색: 70 이상 빨강 · 60~69 주황 · 30 이하 초록 · 그 외 기본색 */
+    const rc=v=>v>=70?'#e03131':v>=60?'#f08c00':v<=30?'#2f9e44':'var(--accent)';
+    const seg={};RS.forEach((v,i)=>{if(v==null||i===0||RS[i-1]==null)return;const c=rc(v);
+      seg[c]=(seg[c]||'')+'M'+X(i-1).toFixed(1)+' '+YR(RS[i-1]).toFixed(1)+'L'+X(i).toFixed(1)+' '+YR(v).toFixed(1)});
+    Object.keys(seg).forEach(c=>mk('path',{d:seg[c],fill:'none',stroke:c,'stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    const lv0=RS.length?RS[RS.length-1]:null;if(lv0!=null)lab(W-R-4,R0+12,'RSI '+lv0.toFixed(1),rc(lv0),'end')}
   (opt.marks||[]).forEach((mm,mi)=>{const i=rows.findIndex(r=>r[0]===mm.di);if(i<0)return;
     mk('line',{x1:X(i),x2:X(i),y1:T,y2:BH,stroke:'var(--mark)','stroke-width':1.2,'stroke-dasharray':'4 3'});
     mk('text',{x:Math.min(W-R-4,X(i)+4),y:T+10+13*mi,style:'fill:var(--mark);font-weight:600','text-anchor':X(i)>W-80?'end':'start'},mm.t)});
