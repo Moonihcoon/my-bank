@@ -104,7 +104,7 @@ def push():
         git('fetch', 'origin')
         git('reset', '--mixed', 'origin/main')      # 방금 만든 파일은 그대로 두고 기준만 최신으로
         git('add', '-A', 'index.html', '.nojekyll', 'data', 'px', 'pipeline')
-        r = git('commit', '-m', f'daily update {last_date()}')
+        r = git('-c', 'user.name=stock-dashboard', '-c', 'user.email=stock-dashboard@users.noreply.github.com', 'commit', '-m', f'daily update {last_date()}')
         if 'nothing to commit' in (r.stdout + r.stderr):
             log('바뀐 내용이 없어 업로드하지 않았습니다.')
             return
@@ -165,9 +165,12 @@ def publish_share():
     shutil.copytree(REPO / 'px' / 'm', sd / 'px' / 'm')
     for attempt in range(3):
         g('add', '-A', '.')
-        r = g('commit', '-m', f'rank200 update {last_date()}')
-        if 'nothing to commit' in (r.stdout + r.stderr):
+        if not g('status', '--porcelain').stdout.strip():
             log('공유 페이지: 바뀐 내용이 없어 업로드하지 않았습니다.')
+            return
+        r = g('-c', 'user.name=stock-dashboard', '-c', 'user.email=stock-dashboard@users.noreply.github.com', 'commit', '-m', f'rank200 update {last_date()}')
+        if r.returncode != 0:
+            log('공유 페이지 커밋 실패: ' + (r.stderr or r.stdout)[-300:])
             return
         r = g('push', 'origin', 'HEAD:main')
         if r.returncode == 0:
