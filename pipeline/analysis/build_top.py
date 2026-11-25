@@ -55,3 +55,8 @@ js = re.sub(r"\$\('#upd-btn'\)\.addEventListener\(.*?\);\n?", '', js, flags=re.S
 page = head + '<style>.wrap{max-width:1360px}</style>\n' + page_body + '<script>' + js + '</script><script>' + MAPJS + '</script><script>' + RSJS + '</script><script>' + IXJS + '</script>'
 open('web/rank.html', 'w', encoding='utf-8').write(page)
 print('rank.html', len(page))
+
+# 급등주 대시보드(index.html)에도 같은 탭을 넣습니다. 옛 버전 run_all 로 돌아도(코드 받기 직전 목록 사용) 빠지지 않게 여기서도 실행합니다.
+import os as _os
+if _os.path.exists('web/index.html') and _os.path.exists('web/tpl_ix.html'):
+    exec(compile(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)) if '__file__' in globals() else '.', 'build_dash_extra.py'), encoding='utf-8').read(), 'build_dash_extra.py', 'exec'), {'__name__': '__extra__'})
